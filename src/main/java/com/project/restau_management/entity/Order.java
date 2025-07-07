@@ -1,5 +1,6 @@
 package com.project.restau_management.entity;
 
+
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -40,7 +41,7 @@ public class Order {
 
     @ManyToOne
     @JoinColumn(name = "table_id")
-    private Table table;
+    private RestaurantTable table;
 
     @PrePersist
     protected void onCreate() {

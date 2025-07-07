@@ -25,6 +25,6 @@ public class PaymentMethod {
     @Column(nullable = false)
     private boolean isActive;
 
-    @Column(precision = 5, scale = 2)
+    @Column(nullable = false)
     private float processingFee;
 }

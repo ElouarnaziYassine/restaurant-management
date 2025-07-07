@@ -8,7 +8,7 @@ import lombok.*;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Tablee {
+public class RestaurantTable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
