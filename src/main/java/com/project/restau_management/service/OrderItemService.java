@@ -24,7 +24,6 @@ public class OrderItemService {
     }
 
     public OrderItem saveOrderItem(OrderItem orderItem) {
-        // Calculate subtotal
         orderItem.setSubtotal(orderItem.getUnitPrice() * orderItem.getQuantity());
         return orderItemRepository.save(orderItem);
     }
