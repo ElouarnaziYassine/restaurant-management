@@ -30,22 +30,17 @@ public class OrderController {
         this.tableService = tableService;
     }
 
-    // [Keep all your existing methods unchanged until the createOrder method]
-
     @PostMapping
     public ResponseEntity<?> createOrder(@RequestBody OrderRequestDTO orderDTO) {
         try {
-            // 1. Validate and get required user
             User user = userService.getUserById(orderDTO.getUserId())
                     .orElseThrow(() -> new RuntimeException("User not found with id: " + orderDTO.getUserId()));
 
-            // 2. Create new order with required fields
             Order order = new Order();
             order.setUser(user);
-            order.setStatus(orderDTO.getStatus() != null ? orderDTO.getStatus() : "CREATED");
+            order.setStatus(orderDTO.getStatus() != null ? orderDTO.getStatus() : "ON GOING");
             order.setCreatedAt(LocalDateTime.now());
 
-            // 3. Set optional fields
             if (orderDTO.getDescription() != null) {
                 order.setDescription(orderDTO.getDescription());
             }
@@ -54,14 +49,12 @@ public class OrderController {
                 order.setTotalAmount(orderDTO.getTotalAmount());
             }
 
-            // 4. Handle optional client
             if (orderDTO.getClientId() != null) {
                 Client client = clientService.getClientById(orderDTO.getClientId())
                         .orElseThrow(() -> new RuntimeException("Client not found with id: " + orderDTO.getClientId()));
                 order.setClient(client);
             }
 
-            // 5. Handle optional table
             if (orderDTO.getTableId() != null) {
                 RestaurantTable table = tableService.getTableById(orderDTO.getTableId())
                         .orElseThrow(() -> new RuntimeException("Table not found with id: " + orderDTO.getTableId()));
@@ -75,7 +68,6 @@ public class OrderController {
                 tableService.saveTable(table);
             }
 
-            // 6. Save and return the order
             Order savedOrder = orderService.saveOrder(order);
             return ResponseEntity.status(201).body(OrderResponseDTO.fromEntity(savedOrder));
 
@@ -93,13 +85,12 @@ public class OrderController {
             @PathVariable int id,
             @RequestBody OrderRequestDTO orderDTO) {
 
-        // Get existing order
         Optional<Order> existingOrder = orderService.getOrderById(id);
         if (existingOrder.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
-        // Update only allowed fields
+        // We can only update these fields
         Order orderToUpdate = existingOrder.get();
         if (orderDTO.getDescription() != null) {
             orderToUpdate.setDescription(orderDTO.getDescription());
@@ -111,7 +102,6 @@ public class OrderController {
             orderToUpdate.setTotalAmount(orderDTO.getTotalAmount());
         }
 
-        // Save updated order
         Order updatedOrder = orderService.saveOrder(orderToUpdate);
         return ResponseEntity.ok(OrderResponseDTO.fromEntity(updatedOrder));
     }
