@@ -11,4 +11,6 @@ import java.util.List;
 public interface ProductFamilyRepository extends JpaRepository<ProductFamily, String> {
     Optional<ProductFamily> findByName(String name);
     List<ProductFamily> findByNameContainingIgnoreCase(String name);
+    List<ProductFamily> findByCategory_CategoryId(int categoryId);
+
 }

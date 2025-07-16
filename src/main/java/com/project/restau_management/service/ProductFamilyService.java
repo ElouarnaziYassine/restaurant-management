@@ -36,4 +36,9 @@ public class ProductFamilyService {
     public List<ProductFamily> searchByName(String name) {
         return productFamilyRepository.findByNameContainingIgnoreCase(name);
     }
+
+    public List<ProductFamily> getFamiliesByCategoryId(int categoryId) {
+        return productFamilyRepository.findByCategory_CategoryId(categoryId);
+    }
+
 }

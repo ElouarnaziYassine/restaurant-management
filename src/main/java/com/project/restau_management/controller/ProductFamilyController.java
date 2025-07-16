@@ -55,4 +55,10 @@ public class ProductFamilyController {
     public List<ProductFamily> searchProductFamilies(@RequestParam String name) {
         return productFamilyService.searchByName(name);
     }
+
+    @GetMapping("/by-category/{categoryId}")
+    public List<ProductFamily> getByCategory(@PathVariable int categoryId) {
+        return productFamilyService.getFamiliesByCategoryId(categoryId);
+    }
+
 }
