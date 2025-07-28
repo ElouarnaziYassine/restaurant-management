@@ -6,6 +6,8 @@ import com.project.restau_management.entity.Product;
 import com.project.restau_management.repository.OrderItemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,7 +26,7 @@ public class OrderItemService {
     }
 
     public OrderItem saveOrderItem(OrderItem orderItem) {
-        orderItem.setSubtotal(orderItem.getUnitPrice() * orderItem.getQuantity());
+        orderItem.setSubtotal(orderItem.getUnitPrice().multiply(BigDecimal.valueOf(orderItem.getQuantity())));
         return orderItemRepository.save(orderItem);
     }
 
@@ -51,4 +53,20 @@ public class OrderItemService {
     public Long getTotalQuantityByProduct(int productId) {
         return orderItemRepository.getTotalQuantityByProductId(productId);
     }
+
+    public OrderItem updateOrderItem(Long id, Integer quantity, BigDecimal unitPrice) {
+        System.out.println("🛠 Updating OrderItem in DB → ID: " + id + ", quantity: " + quantity);
+
+        OrderItem item = orderItemRepository.findById(Math.toIntExact(id))
+                .orElseThrow(() -> new RuntimeException("Order item not found: " + id));
+
+        item.setQuantity(quantity);
+        item.setUnitPrice(unitPrice);
+        item.setSubtotal(unitPrice.multiply(BigDecimal.valueOf(quantity)));
+
+        return orderItemRepository.save(item);
+    }
+
+
+
 }

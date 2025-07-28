@@ -3,12 +3,14 @@ package com.project.restau_management.dto;
 import com.project.restau_management.entity.Order;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 @Data
 public class OrderResponseDTO {
     private int orderId;
     private String description;
     private String status;
-    private float totalAmount;
+    private BigDecimal totalAmount;
     private String createdAt;
     private int userId;
 

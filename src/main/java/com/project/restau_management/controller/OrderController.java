@@ -1,11 +1,15 @@
 package com.project.restau_management.controller;
 
+import com.project.restau_management.dto.OrderItemDTO;
 import com.project.restau_management.dto.OrderRequestDTO;
 import com.project.restau_management.dto.OrderResponseDTO;
 import com.project.restau_management.entity.*;
 import com.project.restau_management.service.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -16,47 +20,52 @@ import java.util.Optional;
 public class OrderController {
 
     private final OrderService orderService;
+    private final OrderItemService orderItemService;
     private final UserService userService;
     private final ClientService clientService;
     private final TableService tableService;
+    private final ProductService productService;
 
-    public OrderController(OrderService orderService,
+
+    public OrderController(OrderService orderService, OrderItemService orderItemService,
                            UserService userService,
                            ClientService clientService,
-                           TableService tableService) {
+                           TableService tableService, ProductService productService) {
         this.orderService = orderService;
+        this.orderItemService = orderItemService;
         this.userService = userService;
         this.clientService = clientService;
         this.tableService = tableService;
+        this.productService = productService;
     }
 
     @PostMapping
     public ResponseEntity<?> createOrder(@RequestBody OrderRequestDTO orderDTO) {
         try {
-            User user = userService.getUserById(orderDTO.getUserId())
+            // ✅ Step 1: Fetch user
+            User user = userService.getUserById(Math.toIntExact(orderDTO.getUserId()))
                     .orElseThrow(() -> new RuntimeException("User not found with id: " + orderDTO.getUserId()));
 
+            // ✅ Step 2: Create basic Order entity
             Order order = new Order();
             order.setUser(user);
             order.setStatus(orderDTO.getStatus() != null ? orderDTO.getStatus() : "ON GOING");
             order.setCreatedAt(LocalDateTime.now());
+            order.setTotalAmount(BigDecimal.valueOf(orderDTO.getTotalAmount() != null ? orderDTO.getTotalAmount().floatValue() : 0.0f));
 
             if (orderDTO.getDescription() != null) {
                 order.setDescription(orderDTO.getDescription());
             }
 
-            if (orderDTO.getTotalAmount() > 0) {
-                order.setTotalAmount(orderDTO.getTotalAmount());
-            }
-
+            // ✅ Step 3: Optional client and table
             if (orderDTO.getClientId() != null) {
-                Client client = clientService.getClientById(orderDTO.getClientId())
+                Client client = clientService.getClientById(Math.toIntExact(orderDTO.getClientId()))
                         .orElseThrow(() -> new RuntimeException("Client not found with id: " + orderDTO.getClientId()));
                 order.setClient(client);
             }
 
             if (orderDTO.getTableId() != null) {
-                RestaurantTable table = tableService.getTableById(orderDTO.getTableId())
+                RestaurantTable table = tableService.getTableById(Math.toIntExact(orderDTO.getTableId()))
                         .orElseThrow(() -> new RuntimeException("Table not found with id: " + orderDTO.getTableId()));
 
                 if (!table.isAvailable()) {
@@ -68,15 +77,72 @@ public class OrderController {
                 tableService.saveTable(table);
             }
 
+            // ✅ Step 4: Save the order first
             Order savedOrder = orderService.saveOrder(order);
+
+            BigDecimal calculatedTotal = BigDecimal.ZERO;
+
+            // ✅ Step 5: Process order items (fixed the main issue here)
+            if (orderDTO.getItems() != null && !orderDTO.getItems().isEmpty()) {
+                for (OrderItemDTO itemDTO : orderDTO.getItems()) { // Changed from OrderItem to OrderItemDTO
+                    OrderItem item = new OrderItem();
+                    item.setOrder(savedOrder);
+                    item.setQuantity(itemDTO.getQuantity());
+
+                    // ✅ Use getUnitPrice() or getPrice() depending on your DTO structure
+                    BigDecimal unitPrice = itemDTO.getUnitPrice() != null ? itemDTO.getUnitPrice() :
+                            (itemDTO.getPrice() != null ? itemDTO.getPrice() : BigDecimal.ZERO);
+
+                    // Check if unitPrice is greater than zero using compareTo()
+                    if (unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
+                        // If no valid price provided, we'll try to get it from the product
+                        unitPrice = BigDecimal.ZERO;
+                    }
+
+                    item.setUnitPrice(BigDecimal.valueOf(unitPrice.floatValue())); // Convert to float if OrderItem uses float
+
+                    // ✅ Calculate subtotal using BigDecimal multiplication
+                    BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(itemDTO.getQuantity()));
+                    item.setSubtotal(BigDecimal.valueOf(subtotal.floatValue())); // Convert to float if OrderItem uses float
+
+                    if (itemDTO.getDetails() != null) {
+                        item.setDetails(itemDTO.getDetails());
+                    }
+
+                    // ✅ Handle product association properly
+                    if (itemDTO.getProductId() != null && itemDTO.getProductId() > 0) {
+                        // Fetch the product by ID
+                        Product product = productService.getProductById(Math.toIntExact(itemDTO.getProductId()))
+                                .orElseThrow(() -> new RuntimeException("Product not found with id: " + itemDTO.getProductId()));
+                        item.setProduct(product);
+
+                        // If unit price wasn't provided or is zero, use product price
+                        if (itemDTO.getUnitPrice() == null && itemDTO.getPrice() == null ||
+                                unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
+                            BigDecimal productPrice = product.getPrice();
+                            item.setUnitPrice(BigDecimal.valueOf(productPrice.floatValue())); // Convert to float if needed
+                            BigDecimal calculatedSubtotal = productPrice.multiply(BigDecimal.valueOf(itemDTO.getQuantity()));
+                            item.setSubtotal(BigDecimal.valueOf(calculatedSubtotal.floatValue())); // Convert to float if needed
+                            subtotal = calculatedSubtotal; // Keep BigDecimal for total calculation
+                        }
+                    }
+
+                    calculatedTotal = calculatedTotal.add(item.getSubtotal());
+                    orderItemService.saveOrderItem(item);
+                }
+            }
+
+            // ✅ Step 6: Update totalAmount and save again
+            savedOrder.setTotalAmount(BigDecimal.valueOf(calculatedTotal.floatValue()));
+            orderService.saveOrder(savedOrder);
+
             return ResponseEntity.status(201).body(OrderResponseDTO.fromEntity(savedOrder));
 
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of(
-                            "error", e.getMessage(),
-                            "timestamp", LocalDateTime.now()
-                    ));
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", e.getMessage(),
+                    "timestamp", LocalDateTime.now()
+            ));
         }
     }
 
@@ -90,21 +156,58 @@ public class OrderController {
             return ResponseEntity.notFound().build();
         }
 
-        // We can only update these fields
         Order orderToUpdate = existingOrder.get();
-        if (orderDTO.getDescription() != null) {
-            orderToUpdate.setDescription(orderDTO.getDescription());
-        }
-        if (orderDTO.getStatus() != null) {
-            orderToUpdate.setStatus(orderDTO.getStatus());
-        }
-        if (orderDTO.getTotalAmount() > 0) {
-            orderToUpdate.setTotalAmount(orderDTO.getTotalAmount());
+
+        // Update order fields
+        if (orderDTO.getDescription() != null) orderToUpdate.setDescription(orderDTO.getDescription());
+        if (orderDTO.getStatus() != null) orderToUpdate.setStatus(orderDTO.getStatus());
+
+        // Delete existing items
+        List<OrderItem> oldItems = orderItemService.getOrderItemsByOrder(orderToUpdate);
+        oldItems.forEach(item -> orderItemService.deleteOrderItem(item.getOrderItemId()));
+
+        BigDecimal newTotal = BigDecimal.ZERO;
+
+        if (orderDTO.getItems() != null) {
+            for (OrderItemDTO itemDTO : orderDTO.getItems()) {
+                OrderItem newItem = new OrderItem();
+                newItem.setOrder(orderToUpdate);
+                newItem.setQuantity(itemDTO.getQuantity());
+                newItem.setUnitPrice(itemDTO.getUnitPrice());
+                newItem.setSubtotal(itemDTO.getUnitPrice().multiply(BigDecimal.valueOf(itemDTO.getQuantity())));
+                newItem.setDetails(itemDTO.getDetails());
+
+                Product product = productService.getProductById(Math.toIntExact(itemDTO.getProductId()))
+                        .orElseThrow(() -> new RuntimeException("Product not found: " + itemDTO.getProductId()));
+                newItem.setProduct(product);
+
+                newTotal = newTotal.add(newItem.getSubtotal());
+
+                orderItemService.saveOrderItem(newItem);
+            }
         }
 
+        orderToUpdate.setTotalAmount(newTotal);
         Order updatedOrder = orderService.saveOrder(orderToUpdate);
+
         return ResponseEntity.ok(OrderResponseDTO.fromEntity(updatedOrder));
     }
+
+    @PutMapping("/{orderId}/quantities")
+    public ResponseEntity<Order> updateQuantities(
+            @PathVariable Long orderId,
+            @RequestBody List<OrderItemDTO> updatedItems) {
+        try {
+            Order updatedOrder = orderService.updateOrderQuantities(orderId, updatedItems);
+            return ResponseEntity.ok(updatedOrder);
+        } catch (Exception e) {
+            e.printStackTrace(); // Log full stack trace
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(null);
+        }
+    }
+
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteOrder(@PathVariable int id) {

@@ -8,8 +8,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.web.bind.annotation.PathVariable;
+
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Integer> {
@@ -27,4 +30,10 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
 
     @Query("SELECT o FROM Order o WHERE o.table.tableId = :tableId AND o.status = :status")
     List<Order> findByTableIdAndStatus(@Param("tableId") int tableId, @Param("status") String status);
+
+    @Query("SELECT o FROM Order o LEFT JOIN FETCH o.items WHERE o.id = :id")
+    Optional<Order> findByIdWithItems(@PathVariable Long id);
+
+    @Query("SELECT o FROM Order o LEFT JOIN FETCH o.items WHERE o.status = :status")
+    List<Order> findByStatusWithItems(@Param("status") String status);
 }

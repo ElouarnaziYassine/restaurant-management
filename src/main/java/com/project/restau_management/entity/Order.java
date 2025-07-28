@@ -1,11 +1,16 @@
 package com.project.restau_management.entity;
 
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "orders")
@@ -29,7 +34,7 @@ public class Order {
     private String status;
 
     @Column(nullable = false)
-    private float totalAmount;
+    private BigDecimal totalAmount;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
@@ -52,4 +57,8 @@ public class Order {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private List<OrderItem> items = new ArrayList<>();
 }

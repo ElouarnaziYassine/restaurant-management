@@ -1,7 +1,10 @@
 package com.project.restau_management.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "order_items")
@@ -18,15 +21,16 @@ public class OrderItem {
     private int quantity;
 
     @Column(nullable = false)
-    private float unitPrice;
+    private BigDecimal unitPrice;
 
     @Column(nullable = false)
-    private float subtotal;
+    private BigDecimal  subtotal;
 
     private String details;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")
+    @JsonBackReference
     private Order order;
 
     @ManyToOne

@@ -2,12 +2,17 @@ package com.project.restau_management.dto;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
+import java.util.List;
+
 @Data
 public class OrderRequestDTO {
-    private String description;
+    private Long userId;
+    private Long clientId;
+    private Long tableId;
     private String status;
-    private float totalAmount;
-    private Integer clientId;
-    private Integer tableId;
-    private Integer userId;
+    private String description;
+    private BigDecimal totalAmount;
+    private List<OrderItemDTO> items;
+
 }
