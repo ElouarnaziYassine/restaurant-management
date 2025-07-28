@@ -1,0 +1,23 @@
+.category-navbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  margin: 30px;
+}
+
+.category-btn {
+  padding: 8px 16px;
+  border: none;
+  background-color: #eee;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+}
+
+.category-btn.active,
+.category-btn:hover {
+  background-color: #ff9f43;
+  color: white;
+}

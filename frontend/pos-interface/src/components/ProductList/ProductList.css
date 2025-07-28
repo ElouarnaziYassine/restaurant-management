@@ -1,0 +1,69 @@
+
+
+/* ─── Product Grid ─────────────────────────────────────── */
+
+.product-list {
+  display: flex;
+  flex-direction: row;
+  gap: 25px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 0;
+  scroll-behavior: smooth;
+  margin-left: 30px;
+  margin-bottom: 50px;
+  overflow: hidden;
+}
+
+.product-card {
+  min-width: 160px; /* fixed width for horizontal layout */
+  flex-shrink: 0;   /* prevent shrinking */
+  background-color: #fff;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+  transition: box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+
+.product-card:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+}
+
+/* ─── Product Image ────────────────────────────────────── */
+
+.product-image-wrapper {
+  width: 100%;
+  height: 100px;
+  overflow: hidden;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-image {
+  transform: scale(1.05);
+}
+
+/* ─── Product Info ─────────────────────────────────────── */
+
+.product-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.product-price {
+  font-size: 13px;
+  color: #888;
+}

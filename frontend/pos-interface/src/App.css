@@ -1,0 +1,55 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+    font-family: 'Inter', sans-serif; /* or 'Poppins' */
+
+}
+
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  padding-top: 60px; /* To make space for fixed navbar */
+
+}
+
+.page-content {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* This ensures Sidebar width stays fixed */
+.sidebar {
+  width: 60px;
+  background-color: #f7f7f7;
+  border-right: 1px solid #ddd;
+}
+
+/* Main content area (middle + right side) */
+.main-content {
+  display: flex;
+  flex: 1;
+  background-color: #fff;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.page-content-row {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.product-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}

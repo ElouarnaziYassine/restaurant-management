@@ -1,0 +1,33 @@
+.family-navbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 20px;
+  overflow-x: auto;
+  border-bottom: 1px solid #eee;
+}
+
+.family-btn {
+  background-color: #f1f1f1;
+  border: none;
+  border-radius: 20px;
+  padding: 20px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s;
+}
+
+.family-btn .emoji {
+  margin-right: 6px;
+}
+
+.family-btn:hover {
+  background-color: #ddd;
+}
+
+.family-btn.active {
+  background-color: #ff8c00;
+  color: white;
+}

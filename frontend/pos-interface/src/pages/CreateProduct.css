@@ -1,0 +1,64 @@
+.create-product-page {
+  padding: 40px;
+  max-width: 900px;
+  margin: 0 auto;
+  font-family: "Poppins", sans-serif;
+}
+
+.create-product-page h2 {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.product-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+  align-items: center;
+}
+
+.product-form label {
+  font-weight: 500;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.product-form input,
+.product-form select,
+.product-form textarea {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+.product-form textarea {
+  min-height: 100px;
+  resize: vertical;
+  grid-column: span 3;
+}
+
+.product-form .full-width {
+  grid-column: span 3;
+}
+
+.product-form button {
+  grid-column: span 3;
+  padding: 12px;
+  font-size: 16px;
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.message {
+  grid-column: span 3;
+  text-align: center;
+  font-weight: bold;
+  margin-top: 10px;
+}

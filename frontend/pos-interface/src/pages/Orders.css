@@ -1,0 +1,189 @@
+.orders-page {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background: #f8f9fa;
+}
+
+.orders-heading {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+.order-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.filter-btn {
+  padding: 6px 14px;
+  border: 1px solid #ccc;
+  background-color: white;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+  background-color: #f1f1f1;
+}
+
+.active-filter {
+  background-color: #333;
+  color: white;
+  border-color: #333;
+}
+
+.orders-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.order-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: transform 0.2s ease;
+}
+
+.order-card:hover {
+  transform: translateY(-2px);
+}
+
+.order-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.order-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.order-top h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.order-id {
+  font-size: 12px;
+  color: #999;
+}
+
+.status {
+  padding: 4px 10px;
+  font-size: 13px;
+  border-radius: 20px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status.on\ going {
+  background: #fff8e1;
+  color: #f39c12;
+  border: 1px solid #f1c40f;
+}
+
+.status.completed {
+  background: #e8fdf2;
+  color: #2ecc71;
+  border: 1px solid #27ae60;
+}
+
+.status.cancelled {
+  background: #ffecec;
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
+}
+
+.order-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  padding: 6px 0;
+  border-bottom: 1px dashed #eee;
+  gap: 10px;
+}
+
+.item-row input[type="number"] {
+  width: 60px;
+  padding: 4px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.item-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modified-flag {
+  font-size: 12px;
+  color: #e67e22;
+  background: #fff3e0;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.order-bottom {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.total {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222;
+}
+
+.order-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.complete-btn,
+.cancel-btn,
+.edit-btn {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.complete-btn {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.cancel-btn {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.edit-btn {
+  background-color: #f39c12;
+  color: white;
+}
