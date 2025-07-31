@@ -58,9 +58,9 @@ const Cart = ({ cartItems, onUpdateQuantity, onRemoveItem, onOrderCreated }) => 
                 </div>
               </div>
               <div className="item-pricing">
-                <span className="unit-price">${item.price.toFixed(2)}</span>
+                <span className="unit-price">{item.price.toFixed(2)} DH</span>
                 <span className="line-total">
-                  ${(item.price * item.quantity).toFixed(2)}
+                  {(item.price * item.quantity).toFixed(2)} DH
                 </span>
                 <button className="remove-btn" onClick={() => onRemoveItem(item.id)}>
                   🗑
@@ -76,15 +76,15 @@ const Cart = ({ cartItems, onUpdateQuantity, onRemoveItem, onOrderCreated }) => 
           <div className="cart-summary">
             <div className="summary-line">
               <span>Subtotal</span>
-              <span>${subtotal.toFixed(2)}</span>
+              <span>{subtotal.toFixed(2)} DH</span>
             </div>
             <div className="summary-line">
               <span>Tax (10%)</span>
-              <span>${tax.toFixed(2)}</span>
+              <span>{tax.toFixed(2)} DH</span>
             </div>
             <div className="summary-line total">
               <span>Total</span>
-              <span>${total.toFixed(2)}</span>
+              <span>{total.toFixed(2)} DH</span>
             </div>
           </div>
 

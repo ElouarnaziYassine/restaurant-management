@@ -44,7 +44,7 @@ const ProductList = ({ selectedFamilyId, onAddToCart }) => {
             </div>
             <div className="product-name">{product.name}</div>
             <div className="product-price">
-              ${product.price ? product.price.toFixed(2) : "0.00"}
+              {product.price ? product.price.toFixed(2) : "0.00"} DH
             </div>
           </div>
         ))}
