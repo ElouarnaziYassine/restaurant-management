@@ -3,6 +3,10 @@
   max-width: 900px;
   margin: 0 auto;
   font-family: "Poppins", sans-serif;
+  overflow-y: auto; /* Enables vertical scrolling */
+  max-height: 90vh; /* Limits the height to 90% of the viewport */
+  scroll-behavior: smooth; /* Adds smooth scrolling */
+  margin-bottom: 50px;
 }
 
 .create-product-page h2 {

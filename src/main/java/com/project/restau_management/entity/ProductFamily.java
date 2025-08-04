@@ -19,11 +19,23 @@ public class ProductFamily {
     @Column(nullable = false)
     private String name;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
     @Column(name = "image_alt_text")
     private String imageAltText;
+
+    @Column(name = "original_filename")
+    private String originalFilename;
+
+    @Column(name = "file_size")
+    private Long fileSize;
+
+    @Column(name = "content_type")
+    private String contentType;
 
     @ManyToOne
     @JoinColumn(name = "category_id") // Foreign key in DB

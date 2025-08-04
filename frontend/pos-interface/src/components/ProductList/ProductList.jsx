@@ -15,6 +15,7 @@ const ProductList = ({ selectedFamilyId, onAddToCart }) => {
       .get(`http://localhost:8080/api/products/family/${selectedFamilyId}`)
       .then((res) => {
         if (Array.isArray(res.data)) {
+          console.log("Products loaded:", res.data); // Debug: check imageUrl values
           setProducts(res.data);
         } else {
           setProducts([]);
@@ -31,15 +32,20 @@ const ProductList = ({ selectedFamilyId, onAddToCart }) => {
       <div className="product-list">
         {products.map((product) => (
           <div
-            key={product.productId}  // ✅ Correction ici
+            key={product.productId}
             className="product-card"
             onClick={() => onAddToCart(product)}
           >
             <div className="product-image-wrapper">
               <img
-                src={product.imageUrl || "/default.jpg"}
+                src={product.imageUrl ? `http://localhost:8080${product.imageUrl}` : "/default.jpg"}
                 alt={product.name}
                 className="product-image"
+                onError={(e) => {
+                  console.log("Image failed to load:", product.imageUrl);
+                  console.log("Full URL attempted:", `http://localhost:8080${product.imageUrl}`);
+                  e.target.src = "/default.jpg";
+                }}
               />
             </div>
             <div className="product-name">{product.name}</div>

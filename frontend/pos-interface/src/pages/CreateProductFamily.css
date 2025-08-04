@@ -6,6 +6,10 @@
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   font-family: 'Poppins', sans-serif;
+  overflow-y: auto; /* Enables vertical scrolling */
+  max-height: 90vh; /* Limits the height to 90% of the viewport */
+  scroll-behavior: smooth; /* Adds smooth scrolling */
+  margin-bottom: 50px;
 }
 
 .create-product-family-page h2 {
@@ -105,4 +109,36 @@
   margin-bottom: 6px;
   font-weight: 500;
   font-size: 14px;
+}
+
+.file-input {
+  margin-bottom: 10px;
+}
+
+.image-preview {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.preview-image {
+  max-width: 200px;
+  max-height: 200px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  display: block;
+  margin: 0 auto 10px;
+}
+
+.remove-image-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.remove-image-btn:hover {
+  background-color: #c82333;
 }
