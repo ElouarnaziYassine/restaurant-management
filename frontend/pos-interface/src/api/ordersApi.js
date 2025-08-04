@@ -11,48 +11,21 @@ export async function fetchOrdersByStatus(status) {
 }
 
 // CREATE ORDER - This was missing!
-export async function createOrder(cartItems) {
-  console.log("🛒 Creating order with cart items:", cartItems);
-  
-  const orderData = {
-    userId: 2,
-    status: "ON GOING",
-    placedAt: new Date().toISOString(),
-    total: cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-    items: cartItems.map(item => ({
-      productId: item.productId || item.id,
-      name: item.name,
-      quantity: item.quantity,
-      price: item.price,
-      // Add any other fields your OrderItem entity needs
-      // productId: item.productId, // if you have this field
-      // modifier: item.modifier, // if you have this field
-    }))
-  };
-  
-  console.log("📦 Sending order data to backend:", orderData);
-  console.log("🔍 Order payload:", JSON.stringify(orderData, null, 2));
-
-  const response = await fetch(API_URL, {
+export async function createOrder(orderData) {
+  const response = await fetch("http://localhost:8080/api/orders", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(orderData),
   });
-  
+
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("❌ Order creation failed:", errorText);
     throw new Error(`Failed to create order: ${errorText}`);
   }
-  
-  const createdOrder = await response.json();
-  console.log("✅ Order created successfully:", createdOrder);
-  console.log("📋 Order items:", createdOrder.items);
-  
-  return createdOrder;
+
+  return await response.json();
 }
+
 
 // Update order status
 

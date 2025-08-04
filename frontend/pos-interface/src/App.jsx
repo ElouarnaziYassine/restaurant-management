@@ -10,6 +10,7 @@ import ProductPage from "./pages/ProductPage";
 import CreateProductFamily from "./pages/CreateProductFamily";
 import CreateProduct from "./pages/CreateProduct";
 import "./App.css";
+import CreateTable from "./pages/createTable";
 
 function App() {
   const [cartItems, setCartItems] = useState([]);
@@ -106,7 +107,7 @@ const handleAddToCart = (product) => {
 
                   <Toast message={toast.message} visible={toast.visible} />
                   <Cart
-                    cartItems={cartItems}
+                    cartItems={cartItems || []} // ✅ default to empty array
                     onUpdateQuantity={updateQuantity}
                     onRemoveItem={removeItem}
                     onOrderCreated={handleOrderCreated} // ✅ use this instead of onProceed
@@ -129,6 +130,8 @@ const handleAddToCart = (product) => {
             <Route path="/categories/new" element={<CreateCategory />} />
             <Route path="/families/new" element={<CreateProductFamily />} />
             <Route path="/products/new" element={<CreateProduct />} />
+            <Route path="/tables/new" element={<CreateTable />} />
+
           </Routes>
         </div>
       </div>

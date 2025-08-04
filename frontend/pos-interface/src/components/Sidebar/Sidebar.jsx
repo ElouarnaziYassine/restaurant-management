@@ -9,7 +9,9 @@ const Sidebar = () => {
       <div className="icon">
         <Link to="/">🏠</Link>  
       </div>        
-      <div className="icon">👥</div>
+      <div className="icon">
+        <Link to="/tables/new">🪑</Link>
+      </div>
       <div className="icon">
         <Link to="/orders">🧺​</Link>  
     </div>

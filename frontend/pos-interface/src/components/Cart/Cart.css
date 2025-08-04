@@ -121,3 +121,186 @@
   background-color: #2ecc71;
   color: white;
 }
+
+/*table css*/
+/* Table Selector Button in Cart Actions */
+.table-select-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  background-color: #ffbe76;
+  color: #333;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.table-select-btn:hover {
+  background-color: #ffa726;
+}
+
+/* Modal Overlay */
+.table-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Modal Container */
+.table-modal {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Modal Header */
+.table-modal h3 {
+  font-size: 20px;
+  margin: 0 0 15px 0;
+  color: #333;
+  font-weight: normal;
+}
+
+/* Table Grid */
+.table-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+/* Table Cards */
+.table-card {
+  background-color: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.table-card:hover {
+  border-color: #ccc;
+  background-color: #fafafa;
+}
+
+.table-card div:first-child {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.table-card div:last-child {
+  font-size: 13px;
+  color: #555;
+}
+
+/* Table Card States */
+.table-card.available {
+  background-color: #fff;
+  border-color: #2ecc71;
+}
+
+.table-card.available:hover {
+  background-color: #f8fff9;
+  border-color: #27ae60;
+}
+
+.table-card.unavailable {
+  background-color: #f5f5f5;
+  border-color: #eee;
+  color: #999;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.table-card.unavailable:hover {
+  background-color: #f5f5f5;
+  border-color: #eee;
+}
+
+.table-card.selected {
+  background-color: #fff;
+  border-color: #2ecc71;
+  color: #2ecc71;
+  border-width: 2px;
+  font-weight: bold;
+}
+
+/* Close Button */
+.close-modal {
+  width: 100%;
+  background-color: #eee;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.close-modal:hover {
+  background-color: #ddd;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .table-modal {
+    padding: 15px;
+    width: 95%;
+  }
+  
+  .table-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+  }
+  
+  .table-card {
+    padding: 8px;
+  }
+  
+  .table-modal h3 {
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+}
+
+/* Custom scrollbar to match theme */
+.table-modal::-webkit-scrollbar {
+  width: 8px;
+}
+
+.table-modal::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.table-modal::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+.table-modal::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}

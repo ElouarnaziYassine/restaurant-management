@@ -1,0 +1,80 @@
+.create-table-page {
+  max-width: 1000px;
+  width: 1000px;
+  margin: 30px auto;
+  padding: 30px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  font-family: 'Poppins', sans-serif;
+  margin-bottom: 50px;
+      overflow-y: auto; /* Enables vertical scrolling */
+  max-height: 90vh; /* Limits the height to 90% of the viewport */
+  scroll-behavior: smooth; /* Adds smooth scrolling */
+}
+
+h2 {
+  margin-bottom: 20px;
+}
+
+.table-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.table-form input,
+.table-form select {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+.table-form button {
+  padding: 10px;
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.error-msg {
+  color: #e74c3c;
+  margin-top: 10px;
+}
+
+.success-msg {
+  color: #2ecc71;
+  margin-top: 10px;
+}
+
+.table-list {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.table-list th,
+.table-list td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.table-list th {
+  background-color: #f2f2f2;
+}
+
+.table-list button {
+  margin-right: 5px;
+  padding: 5px 10px;
+}
+
+.disabled-btn {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+}
