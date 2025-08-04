@@ -49,3 +49,26 @@ h2 {
   resize: vertical;
   min-height: 80px;
 }
+
+/*Table csss*/
+.category-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.category-table th,
+.category-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.category-table th {
+  background-color: #f2f2f2;
+}
+
+.category-table button {
+  margin-right: 5px;
+  padding: 5px 10px;
+}
