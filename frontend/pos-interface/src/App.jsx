@@ -38,6 +38,7 @@ const handleAddToCart = (product) => {
       return [
         ...prev,
         {
+          id: productId,   // ✅ Add this line
           productId,       // ✅ Ensure this is preserved
           name: product.name,
           price: product.price,

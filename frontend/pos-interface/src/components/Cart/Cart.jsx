@@ -87,7 +87,9 @@ const Cart = ({ cartItems, onUpdateQuantity, onRemoveItem, onOrderCreated }) => 
             <p>Your cart is empty</p>
           </div>
         ) : (
-          validCartItems.map((item) => (
+          validCartItems.map((item, index) => (
+            <div className="cart-item" key={item.id || `${item.name}-${index}`}>
+
             <div className="cart-item" key={item.id}>
               <div className="item-details">
                 <div className="item-name">{item.name}</div>
@@ -106,6 +108,7 @@ const Cart = ({ cartItems, onUpdateQuantity, onRemoveItem, onOrderCreated }) => 
                   🗑
                 </button>
               </div>
+            </div>
             </div>
           ))
         )}
