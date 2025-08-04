@@ -1,6 +1,7 @@
 .create-product-page {
   padding: 40px;
-  max-width: 900px;
+  max-width: 1000px;
+  width: 1000px;
   margin: 0 auto;
   font-family: "Poppins", sans-serif;
   overflow-y: auto; /* Enables vertical scrolling */
@@ -65,4 +66,20 @@
   text-align: center;
   font-weight: bold;
   margin-top: 10px;
+}
+
+.product-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.product-table th,
+.product-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.product-table th {
+  background-color: #f9f9f9;
 }
