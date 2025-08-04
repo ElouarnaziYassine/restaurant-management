@@ -7,6 +7,7 @@ import {
   fetchProductFamilies,
   createProductFamily,
 } from "../api/productFamilyApi";
+import Toast from "../components/Toast/Toast"; 
 import axios from "axios";
 import "./CreateProductFamily.css";
 
@@ -30,6 +31,14 @@ const CreateProductFamily = () => {
 
     loadProductFamilies();
   }, []);
+
+  /*toast */
+    useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(""), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   const loadProductFamilies = async () => {
     try {
@@ -163,7 +172,7 @@ const CreateProductFamily = () => {
         </div>
 
         <button type="submit">{editId ? "Update" : "Create"}</button>
-        {message && <p className="message">{message}</p>}
+        <Toast message={message} visible={!!message} />
       </form>
 
       <h3>Existing Product Families</h3>

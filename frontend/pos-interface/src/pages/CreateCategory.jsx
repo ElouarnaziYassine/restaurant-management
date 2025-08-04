@@ -5,6 +5,7 @@ import {
   deleteCategory,
   updateCategory,
 } from "../api/categoryApi";
+import Toast from "../components/Toast/Toast"; 
 import "./CreateCategory.css";
 
 const CreateCategory = () => {
@@ -12,12 +13,18 @@ const CreateCategory = () => {
   const [description, setDescription] = useState("");
   const [categories, setCategories] = useState([]);
   const [editId, setEditId] = useState(null);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     loadCategories();
   }, []);
+
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(""), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   const loadCategories = async () => {
     try {
@@ -32,28 +39,26 @@ const CreateCategory = () => {
     e.preventDefault();
 
     if (!name.trim() || !description.trim()) {
-      setError("Both name and description are required");
+      setMessage("Both name and description are required");
       return;
     }
 
     try {
       if (editId) {
         await updateCategory(editId, { name, description });
-        setSuccess("Category updated successfully");
+        setMessage("Category updated successfully");
       } else {
         await createCategory({ name, description });
-        setSuccess("Category created successfully");
+        setMessage("Category created successfully");
       }
 
-      setError("");
       setName("");
       setDescription("");
       setEditId(null);
       loadCategories();
     } catch (err) {
       console.error(err);
-      setError("Failed to save category");
-      setSuccess("");
+      setMessage("Failed to save category");
     }
   };
 
@@ -62,8 +67,10 @@ const CreateCategory = () => {
       try {
         await deleteCategory(id);
         loadCategories();
+        setMessage("Category deleted");
       } catch (err) {
         console.error("Delete failed", err);
+        setMessage("Failed to delete category");
       }
     }
   };
@@ -72,13 +79,14 @@ const CreateCategory = () => {
     setEditId(category.categoryId);
     setName(category.name);
     setDescription(category.description);
-    setSuccess("");
-    setError("");
+    setMessage("");
   };
 
   return (
     <div className="create-category-page">
       <h2>{editId ? "Edit Category" : "Create New Category"}</h2>
+
+      <Toast message={message} visible={!!message} />
 
       <form onSubmit={handleSubmit} className="category-form">
         <input
@@ -94,9 +102,6 @@ const CreateCategory = () => {
         />
         <button type="submit">{editId ? "Update" : "Create"}</button>
       </form>
-
-      {error && <div className="error-msg">{error}</div>}
-      {success && <div className="success-msg">{success}</div>}
 
       <h3>Existing Categories</h3>
       <table className="category-table">

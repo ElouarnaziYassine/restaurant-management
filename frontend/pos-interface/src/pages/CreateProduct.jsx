@@ -12,6 +12,8 @@ import {
   deleteProduct,
 } from "../api/productApi";
 import "./CreateProduct.css";
+import Toast from "../components/Toast/Toast"; 
+
 
 const CreateProduct = () => {
   const [categories, setCategories] = useState([]);
@@ -47,6 +49,15 @@ const CreateProduct = () => {
       setFamilies([]);
     }
   }, [product.categoryId]);
+
+  /*toast */
+    useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(""), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+
 
   const loadProducts = async () => {
     try {
@@ -223,7 +234,7 @@ const CreateProduct = () => {
         </div>
 
         <button type="submit">{editId ? "Update" : "Create"}</button>
-        {message && <p className="message">{message}</p>}
+        <Toast message={message} visible={!!message} />
       </form>
 
       <h3>Existing Products</h3>
