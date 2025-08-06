@@ -1,0 +1,79 @@
+.create-client-page {
+  padding: 40px;
+  max-width: 1000px;
+  width: 1000px;
+  margin: 0 auto;
+  font-family: "Poppins", sans-serif;
+  overflow-y: auto;
+  max-height: 90vh;
+  scroll-behavior: smooth;
+  margin-bottom: 50px;
+}
+
+.create-client-page h2 {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.client-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+  align-items: center;
+}
+
+.client-form label {
+  font-weight: 500;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.client-form input,
+.client-form select,
+.client-form textarea {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+.client-form .full-width {
+  grid-column: span 3;
+}
+
+.client-form button {
+  grid-column: span 3;
+  padding: 12px;
+  font-size: 16px;
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.message {
+  grid-column: span 3;
+  text-align: center;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.client-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.client-table th,
+.client-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.client-table th {
+  background-color: #f9f9f9;
+}

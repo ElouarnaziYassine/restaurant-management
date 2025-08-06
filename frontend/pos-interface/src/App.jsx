@@ -11,6 +11,7 @@ import CreateProductFamily from "./pages/CreateProductFamily";
 import CreateProduct from "./pages/CreateProduct";
 import "./App.css";
 import CreateTable from "./pages/createTable";
+import CreateClient from "./pages/CreateClient";
 
 function App() {
   const [cartItems, setCartItems] = useState([]);
@@ -132,6 +133,7 @@ const handleAddToCart = (product) => {
             <Route path="/families/new" element={<CreateProductFamily />} />
             <Route path="/products/new" element={<CreateProduct />} />
             <Route path="/tables/new" element={<CreateTable />} />
+            <Route path="/clients/new" element={<CreateClient/>} />
 
           </Routes>
         </div>
