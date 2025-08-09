@@ -17,7 +17,26 @@ const Orders = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [cashAmount, setCashAmount] = useState(0);
   const [cardAmount, setCardAmount] = useState(0);
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [clients, setClients] = useState([]);
+  const [orderToLinkClient, setOrderToLinkClient] = useState(null);
 
+
+  useEffect(() => {
+    const loadClients = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/api/clients");
+        const data = await res.json();
+        setClients(data);
+      } catch (err) {
+        console.error("❌ Failed to load clients:", err);
+      }
+    };
+
+    if (showClientModal) {
+      loadClients();
+    }
+  }, [showClientModal]);
 
   // Fetch orders when filter changes
   useEffect(() => {
@@ -391,6 +410,18 @@ const Orders = () => {
               <span className="payment-btn-icon">🔄</span>
               <span>Split Payment</span>
             </button>
+
+            <button
+              className="payment-type-btn"
+              onClick={() => {
+                setOrderToLinkClient(selectedOrder);
+                setShowClientModal(true);
+              }}
+            >
+              <span className="payment-btn-icon">📋</span>
+              <span>Subscription</span>
+            </button>
+
           </div>
 
           {/* Amount Input Section */}
@@ -521,6 +552,51 @@ const Orders = () => {
     </div>
   </div>
 )}
+{showClientModal && orderToLinkClient && (
+  <div className="modal-overlay" onClick={() => setShowClientModal(false)}>
+    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <h3>Select Client for Subscription</h3>
+      <ul className="client-list">
+        {clients.map((client) => (
+          <li
+            key={client.clientId}
+            className="client-item"
+            onClick={async () => {
+              try {
+                const orderId = orderToLinkClient.id || orderToLinkClient.orderId;
+
+                // Assign client + mark as COMPLETED
+                await fetch(`http://localhost:8080/api/orders/${orderId}/assign-client`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ clientId: client.clientId }),
+                });
+
+                alert(`Client ${client.firstName} ${client.lastName} assigned via subscription.`);
+
+                // 🔁 Re-fetch orders immediately after success
+                const refreshedOrders = await fetchOrdersByStatus(filter);
+                setOrders(refreshedOrders);
+
+                setShowClientModal(false);
+                setOrderToLinkClient(null);
+                setShowPaymentModal(false);
+              } catch (err) {
+                console.error("❌ Failed to assign client", err);
+                alert("Subscription failed.");
+              }
+            }}
+
+          >
+            {client.firstName} {client.lastName} (#{client.clientId})
+          </li>
+        ))}
+      </ul>
+      <button onClick={() => setShowClientModal(false)}>Cancel</button>
+    </div>
+  </div>
+)}
+
 
     </div>
   );

@@ -246,4 +246,38 @@ public class OrderController {
         return orderService.getTodaysOrders();
     }
 
+    @PutMapping("/{orderId}/assign-client")
+    public ResponseEntity<?> assignClientToOrder(@PathVariable int orderId, @RequestBody Map<String, Integer> payload) {
+        try {
+            int clientId = payload.get("clientId");
+
+            Optional<Order> orderOpt = orderService.getOrderById(orderId);
+            if (orderOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Optional<Client> clientOpt = clientService.getClientById(clientId);
+            if (clientOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "Client not found with id: " + clientId));
+            }
+
+            Order order = orderOpt.get();
+            Client client = clientOpt.get();
+
+            order.setClient(client);
+            order.setStatus("COMPLETED"); // ✅ Mark as paid via subscription
+
+            Order updatedOrder = orderService.saveOrder(order);
+
+            return ResponseEntity.ok(OrderResponseDTO.fromEntity(updatedOrder));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to assign client to order", "details", e.getMessage()));
+        }
+    }
+
+
+
 }

@@ -68,4 +68,6 @@ public class PaymentService {
         LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
         return paymentRepository.getTotalAmountByStatusAndDate("COMPLETED", startOfDay);
     }
+
+
 }
