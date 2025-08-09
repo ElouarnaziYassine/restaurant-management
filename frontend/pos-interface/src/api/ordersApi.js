@@ -1,3 +1,6 @@
+import axios from "axios";
+const ORDERS_BASE = "http://localhost:8080/api/orders";
+
 const API_URL = "http://localhost:8080/api/orders"; // or use proxy
 
 // Fetch orders by status
@@ -87,3 +90,16 @@ export async function updateOrderStatus(id, status) {
   if (!res.ok) throw new Error("Failed to update status");
   return res.json();
 }
+
+// clients orders
+export const fetchOrdersByClient = (clientId, fromISO, toISO) => {
+  const params = {};
+  if (fromISO) params.from = fromISO;
+  if (toISO) params.to = toISO;
+  return axios.get(`${ORDERS_BASE}/client/${clientId}`, { params }).then(r => r.data);
+};
+
+export const fetchOrderById = async (orderId) => {
+  const { data } = await axios.get(`${ORDERS_BASE}/${orderId}`);
+  return data; // should include items[]
+};

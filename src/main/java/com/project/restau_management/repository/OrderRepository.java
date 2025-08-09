@@ -36,4 +36,10 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
 
     @Query("SELECT o FROM Order o LEFT JOIN FETCH o.items WHERE o.status = :status")
     List<Order> findByStatusWithItems(@Param("status") String status);
+
+    List<Order> findByClient_ClientIdOrderByCreatedAtDesc(int clientId);
+
+    List<Order> findByClient_ClientIdAndCreatedAtBetweenOrderByCreatedAtDesc(
+            int clientId, LocalDateTime from, LocalDateTime to);
+
 }

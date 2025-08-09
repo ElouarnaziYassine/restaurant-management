@@ -141,6 +141,15 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
+    public List<Order> getOrdersByClientAndDateRange(int clientId, String from, String to) {
+        // If no range provided, return all for client
+        if ((from == null || from.isBlank()) || (to == null || to.isBlank())) {
+            return orderRepository.findByClient_ClientIdOrderByCreatedAtDesc(clientId);
+        }
+        return orderRepository.findByClient_ClientIdAndCreatedAtBetweenOrderByCreatedAtDesc(
+                clientId, LocalDateTime.parse(from + "T00:00:00"), LocalDateTime.parse(to + "T23:59:59"));
+    }
+
 
 
 }

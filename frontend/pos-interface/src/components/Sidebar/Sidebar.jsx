@@ -27,6 +27,9 @@ const Sidebar = () => {
       <div className="icon">
         <Link to="/clients/new">👤</Link>  
       </div>
+      <div className="icon">
+        <Link to="/subscriptions/new">📄</Link>  
+      </div>
     </div>
   );
 };

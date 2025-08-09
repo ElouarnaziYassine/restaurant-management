@@ -278,6 +278,25 @@ public class OrderController {
         }
     }
 
+    @GetMapping("/client/{clientId}")
+    public ResponseEntity<List<Order>> getOrdersByClientAndMonth(
+            @PathVariable int clientId,
+            @RequestParam(required = false) String from, // ISO date e.g. 2025-08-01
+            @RequestParam(required = false) String to    // ISO date e.g. 2025-08-31
+    ) {
+        // Optional range (month) filter
+        List<Order> orders = orderService.getOrdersByClientAndDateRange(clientId, from, to);
+        return ResponseEntity.ok(orders);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<OrderResponseDTO> getOrderById(@PathVariable int id) {
+        return orderService.getOrderById(id)
+                .map(o -> ResponseEntity.ok(OrderResponseDTO.fromEntity(o)))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+
 
 
 }
