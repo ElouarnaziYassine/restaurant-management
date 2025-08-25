@@ -1,11 +1,13 @@
 package com.project.restau_management.controller;
 
+import com.project.restau_management.dto.BulkPaymentRequest;
 import com.project.restau_management.entity.Payment;
 import com.project.restau_management.service.PaymentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/payments")
@@ -76,4 +78,20 @@ public class PaymentController {
         LocalDateTime endDate = LocalDateTime.parse(end);
         return paymentService.getPaymentsByDateRange(startDate, endDate);
     }
+
+    @PostMapping("/bulk")
+    public ResponseEntity<?> createBulkPayment(@RequestBody BulkPaymentRequest req) {
+        try {
+            if (req.getOrderId() == null || req.getPayments() == null || req.getPayments().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error","orderId and payments[] are required"));
+            }
+            paymentService.recordPaymentsForOrder(req.getOrderId(), req.getPayments());
+            return ResponseEntity.ok(Map.of("message","Payments recorded"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(Map.of("error","Failed to record payments","details", ex.getMessage()));
+        }
+    }
+
 }

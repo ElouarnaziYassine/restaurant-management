@@ -4,24 +4,38 @@ import {
   fetchOrdersByStatus,
   updateOrderStatus,
   editOrder,
+  completeOrder, 
   updateOrderQuantities
 } from "../api/ordersApi";
+import Toast from "../components/Toast/Toast";
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
-  const [filter, setFilter] = useState("ON GOING"); // Changed default to "ON GOING"
+  const [filter, setFilter] = useState("ON GOING");
   const [editingOrderId, setEditingOrderId] = useState(null);
   const [editItems, setEditItems] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [cashAmount, setCashAmount] = useState(0);
   const [cardAmount, setCardAmount] = useState(0);
+
   const [showClientModal, setShowClientModal] = useState(false);
   const [clients, setClients] = useState([]);
   const [orderToLinkClient, setOrderToLinkClient] = useState(null);
 
+  const [isSubscriptionFlow, setIsSubscriptionFlow] = useState(false);
+  const [message, setMessage] = useState("");
 
+  // Toast auto-dismiss
+  useEffect(() => {
+    if (!message) return;
+    const t = setTimeout(() => setMessage(""), 2500);
+    return () => clearTimeout(t);
+  }, [message]);
+
+  // Load clients only when the client modal opens
   useEffect(() => {
     const loadClients = async () => {
       try {
@@ -30,28 +44,25 @@ const Orders = () => {
         setClients(data);
       } catch (err) {
         console.error("❌ Failed to load clients:", err);
+        setMessage("Failed to load clients.");
       }
     };
-
-    if (showClientModal) {
-      loadClients();
-    }
+    if (showClientModal) loadClients();
   }, [showClientModal]);
 
   // Fetch orders when filter changes
   useEffect(() => {
     const fetchOrders = async () => {
       if (filter === "ALL") {
-        // Fetch all statuses when "ALL" is selected
         setLoading(true);
         try {
-          const [onGoing, completed, cancelled] = await Promise.all([
+          const [onGoing, pending, completed, cancelled] = await Promise.all([
             fetchOrdersByStatus("ON GOING"),
+            fetchOrdersByStatus("PENDING_PAYMENT"),
             fetchOrdersByStatus("COMPLETED"),
-            fetchOrdersByStatus("CANCELLED")
+            fetchOrdersByStatus("CANCELLED"),
           ]);
-          
-          setOrders([...onGoing, ...completed, ...cancelled]);
+          setOrders([...onGoing, ...pending, ...completed, ...cancelled]);
         } catch (err) {
           console.error("❌ Failed to fetch orders:", err);
           setOrders([]);
@@ -59,7 +70,6 @@ const Orders = () => {
           setLoading(false);
         }
       } else {
-        // Fetch specific status
         setLoading(true);
         try {
           const fetchedOrders = await fetchOrdersByStatus(filter);
@@ -72,111 +82,45 @@ const Orders = () => {
         }
       }
     };
-
     fetchOrders();
-  }, [filter]); // Re-fetch whenever filter changes
+  }, [filter]);
 
   const handleStatusUpdate = async (orderId, newStatus) => {
     try {
       const updated = await updateOrderStatus(orderId, newStatus);
-      setOrders((prev) =>
-        prev.map((o) => (o.id === updated.id ? { ...o, status: updated.status } : o))
+      setOrders(prev =>
+        prev.map(o => (o.id === updated.id || o.orderId === updated.id ? { ...o, status: updated.status } : o))
       );
     } catch (err) {
       console.error("❌ Failed to update status:", err);
+      setMessage("Failed to update status.");
     }
-  };
-
-  const handleEditOrder = async (updatedOrder) => {
-    try {
-      const orderId = updatedOrder.orderId || updatedOrder.id;
-      if (!orderId) {
-        throw new Error("❌ Missing orderId for update");
-      }
-
-      const transformedItems = editItems.map((item, index) => {
-        const orderItemId = item.orderItemId || item.originalId;
-        if (!orderItemId) {
-          throw new Error(`❌ Missing orderItemId in item ${index}`);
-        }
-
-        return {
-          orderItemId,
-          quantity: item.quantity ?? 1,
-        };
-      });
-
-      console.log("📡 Sending updated quantities to API:", transformedItems);
-
-      const updated = await updateOrderQuantities(orderId, transformedItems);
-
-      // ✅ FIXED: Only update the specific order by its exact ID
-      setOrders((prevOrders) =>
-        prevOrders.map((order) => {
-          // Use strict equality and only match the exact order being edited
-          if (order.id === orderId || order.orderId === orderId) {
-            return {
-              ...order,
-              ...updated,
-              items: [...editItems], // ✅ Create a new array to avoid reference issues
-              totalAmount: calculateOrderTotal(editItems),
-              total: calculateOrderTotal(editItems)
-            };
-          }
-          return order; // ✅ Return unchanged order (no mutation)
-        })
-      );
-
-      console.log("✅ Order quantities updated successfully");
-    } catch (err) {
-      console.error("❌ Failed to update order quantities:", err);
-    }
-  };
-
-  // Remove this line since we're fetching based on filter now
-  // const filteredOrders = filter === "ALL" ? orders : orders.filter((order) => order.status === filter);
-  const filteredOrders = orders; // Orders are already filtered by the API call
-
-  const formatTime = (iso) => {
-    const date = new Date(iso);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   const getItemProperties = (item) => ({
-    name: item.product?.name || item.name || 'Unknown Item',
+    name: item.product?.name || item.name || "Unknown Item",
     price: item.unitPrice || item.price || 0,
     quantity: item.quantity || 0,
     originalId: item.orderItemId || item.id,
     orderItemId: item.orderItemId || item.originalId || item.id,
-    productId: item.product?.id || item.productId || item.id
+    productId: item.product?.id || item.productId || item.id,
   });
 
-  const calculateOrderTotal = (items) => {
-    return items.reduce((acc, item) => {
-      const itemProps = getItemProperties(item);
-      return acc + (itemProps.price * itemProps.quantity);
+  const calculateOrderTotal = (items) =>
+    (items || []).reduce((acc, item) => {
+      const p = getItemProperties(item);
+      return acc + (p.price * p.quantity);
     }, 0);
-  };
 
   const handleEdit = (order) => {
-    console.log('🔧 Editing order:', order);
-    console.log('🔧 Original items:', order.items);
-    
-    // ✅ FIXED: Use the exact order ID for comparison
     const orderIdToEdit = order.id || order.orderId;
     setEditingOrderId(orderIdToEdit);
-    
-    // ✅ FIXED: Create a deep copy to avoid reference issues
-    const itemsCopy = (order.items || []).map((item) => ({
-      ...getItemProperties(item) // Spread to create new object
-    }));
-    
-    console.log('🔧 Transformed edit items:', itemsCopy);
+    const itemsCopy = (order.items || []).map((item) => ({ ...getItemProperties(item) }));
     setEditItems(itemsCopy);
   };
 
   const handleItemChange = (index, field, value) => {
-    setEditItems((prev) => {
+    setEditItems(prev => {
       const updated = [...prev];
       updated[index][field] = field === "quantity" ? parseInt(value) || 0 : value;
       return updated;
@@ -184,27 +128,54 @@ const Orders = () => {
   };
 
   const handleRemoveItem = (index) => {
-    setEditItems((prev) => prev.filter((_, i) => i !== index));
+    setEditItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleEditOrder = async (updatedOrder) => {
+    try {
+      const orderId = updatedOrder.orderId || updatedOrder.id;
+      if (!orderId) throw new Error("❌ Missing orderId for update");
+
+      const transformedItems = editItems.map((item, index) => {
+        const orderItemId = item.orderItemId || item.originalId;
+        if (!orderItemId) throw new Error(`❌ Missing orderItemId in item ${index}`);
+        return { orderItemId, quantity: item.quantity ?? 1 };
+      });
+
+      const updated = await updateOrderQuantities(orderId, transformedItems);
+
+      setOrders(prevOrders =>
+        prevOrders.map(order => {
+          if (order.id === orderId || order.orderId === orderId) {
+            return {
+              ...order,
+              ...updated,
+              items: [...editItems],
+              totalAmount: calculateOrderTotal(editItems),
+              total: calculateOrderTotal(editItems),
+            };
+          }
+          return order;
+        })
+      );
+
+      setMessage("Order updated.");
+    } catch (err) {
+      console.error("❌ Failed to update order quantities:", err);
+      setMessage("Failed to update order.");
+    }
   };
 
   const handleSave = (order) => {
-    console.log('💾 Saving order:', order);
-    console.log('💾 Edit items:', editItems);
-    
     const total = calculateOrderTotal(editItems);
-    
     const updatedOrder = {
       ...order,
       id: order.orderId || order.id,
-      items: [...editItems], // ✅ Create new array to avoid reference issues
+      items: [...editItems],
       totalAmount: total,
       total: total,
     };
-    
-    console.log('💾 Final updated order:', updatedOrder);
     handleEditOrder(updatedOrder);
-    
-    // ✅ FIXED: Clear editing state immediately after save
     setEditingOrderId(null);
     setEditItems([]);
   };
@@ -214,12 +185,19 @@ const Orders = () => {
     setEditItems([]);
   };
 
+  const formatTime = (iso) => {
+    const date = new Date(iso);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const filteredOrders = orders;
+
   return (
     <div className="orders-page">
       <h2 className="orders-heading">📋 Orders</h2>
 
       <div className="order-filters">
-        {["ALL", "ON GOING", "COMPLETED", "CANCELLED"].map((status) => (
+        {["ALL", "ON GOING", "PENDING_PAYMENT", "COMPLETED", "CANCELLED"].map((status) => (
           <button
             key={status}
             className={`filter-btn ${filter === status ? "active-filter" : ""}`}
@@ -244,7 +222,7 @@ const Orders = () => {
 
             return (
               <div
-                key={order.id}
+                key={orderId}
                 className={`order-card ${order.status !== "ON GOING" ? "order-disabled" : ""}`}
               >
                 <div className="order-top">
@@ -252,7 +230,7 @@ const Orders = () => {
                     <h3>Order #{index + 1}</h3>
                     <p className="order-id">Placed at {formatTime(order.createdAt)}</p>
                   </div>
-                  <span className={`status ${order.status.toLowerCase()}`}>
+                  <span className={`status ${String(order.status || "").toLowerCase().replace(/[\s_]+/g, "-")}`}>
                     {order.status}
                   </span>
                 </div>
@@ -283,17 +261,16 @@ const Orders = () => {
                             <span>{(itemProps.price * itemProps.quantity).toFixed(2)} DH</span>
                           </div>
                         );
-                      })
-                  }
+                      })}
                 </div>
 
                 <div className="order-bottom">
                   <div className="total">
-                    Total:  
-                     {isEditing
+                    Total:{" "}
+                    {isEditing
                       ? calculateOrderTotal(editItems).toFixed(2)
-                      : calculateOrderTotal(orderItems).toFixed(2)
-                    } DH
+                      : calculateOrderTotal(orderItems).toFixed(2)}{" "}
+                    DH
                   </div>
 
                   <div className="order-actions">
@@ -305,17 +282,23 @@ const Orders = () => {
                         </>
                       ) : (
                         <>
-                          <button onClick={() => {
-                            setSelectedOrder(order);
-                            const total = calculateOrderTotal(order.items || []);
-                            setCashAmount(total); // Default to full cash
-                            setCardAmount(0);
-                            setShowPaymentModal(true);
-                          }}
-                          className="complete-btn">
+                          <button
+                            onClick={() => {
+                              setSelectedOrder(order);
+                              const total = calculateOrderTotal(order.items || []);
+                              setCashAmount(total);
+                              setCardAmount(0);
+                              setShowPaymentModal(true);
+                              setIsSubscriptionFlow(false); // reset on open
+                            }}
+                            className="complete-btn"
+                          >
                             ✅ Complete
                           </button>
-                          <button onClick={() => handleStatusUpdate(order.id || order.orderId, "CANCELLED")} className="cancel-btn">
+                          <button
+                            onClick={() => handleStatusUpdate(order.id || order.orderId, "CANCELLED")}
+                            className="cancel-btn"
+                          >
                             ❌ Cancel
                           </button>
                           <button onClick={() => handleEdit(order)} className="edit-btn">✏️ Edit</button>
@@ -329,275 +312,290 @@ const Orders = () => {
           })}
         </div>
       )}
+
       {showPaymentModal && selectedOrder && (
-  <div className="payment-modal-overlay" onClick={() => setShowPaymentModal(false)}>
-    <div className="payment-modal" onClick={e => e.stopPropagation()}>
-      <div className="payment-modal-header">
-        <h3>💳 Process Payment</h3>
-        <div className="payment-order-number">Order #{selectedOrder.id}</div>
-        <button 
-          className="payment-close-btn" 
-          onClick={() => setShowPaymentModal(false)}
-          aria-label="Close"
-        >
-          ✕
-        </button>
-      </div>
-
-      <div className="payment-modal-body">
-        {/* Order Summary - Top Section */}
-        <div className="payment-order-summary">
-          <div className="summary-header">
-            <h4>🧾 Order Summary</h4>
-            <div className="order-total-display">
-              {calculateOrderTotal(selectedOrder.items || []).toFixed(2)} DH
+        <div className="payment-modal-overlay" onClick={() => { setShowPaymentModal(false); setIsSubscriptionFlow(false); }}>
+          <div className="payment-modal" onClick={e => e.stopPropagation()}>
+            <div className="payment-modal-header">
+              <h3>💳 Process Payment</h3>
+              <div className="payment-order-number">Order #{selectedOrder.id || selectedOrder.orderId}</div>
+              <button
+                className="payment-close-btn"
+                onClick={() => { setShowPaymentModal(false); setIsSubscriptionFlow(false); }}
+                aria-label="Close"
+              >
+                ✕
+              </button>
             </div>
-          </div>
-          <div className="payment-items-grid">
-            {(selectedOrder.items || []).map((item, i) => {
-              const itemProps = getItemProperties(item);
-              return (
-                <div key={i} className="payment-summary-item">
-                  <span className="payment-item-name">{itemProps.name}</span>
-                  <span className="payment-item-details">
-                    <span className="payment-item-qty">×{itemProps.quantity}</span>
-                    <span className="payment-item-total">{(itemProps.price * itemProps.quantity).toFixed(2)} DH</span>
-                  </span>
+
+            <div className="payment-modal-body">
+              {/* Order Summary */}
+              <div className="payment-order-summary">
+                <div className="summary-header">
+                  <h4>🧾 Order Summary</h4>
+                  <div className="order-total-display">
+                    {calculateOrderTotal(selectedOrder.items || []).toFixed(2)} DH
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Payment Methods - Main Section */}
-        <div className="payment-methods-container">
-          <h4>💳 Select Payment Method</h4>
-          
-          {/* Payment Buttons Row */}
-          <div className="payment-type-buttons">
-            <button 
-              className={`payment-type-btn ${cashAmount > 0 && cardAmount === 0 ? 'active' : ''}`}
-              onClick={() => {
-                const total = calculateOrderTotal(selectedOrder.items || []);
-                setCashAmount(total);
-                setCardAmount(0);
-              }}
-            >
-              <span className="payment-btn-icon">💵</span>
-              <span>Cash Only</span>
-            </button>
-            
-            <button 
-              className={`payment-type-btn ${cardAmount > 0 && cashAmount === 0 ? 'active' : ''}`}
-              onClick={() => {
-                const total = calculateOrderTotal(selectedOrder.items || []);
-                setCardAmount(total);
-                setCashAmount(0);
-              }}
-            >
-              <span className="payment-btn-icon">💳</span>
-              <span>Card Only</span>
-            </button>
-            
-            <button 
-              className={`payment-type-btn ${cashAmount > 0 && cardAmount > 0 ? 'active' : ''}`}
-              onClick={() => {
-                const total = calculateOrderTotal(selectedOrder.items || []);
-                setCashAmount(total / 2);
-                setCardAmount(total / 2);
-              }}
-            >
-              <span className="payment-btn-icon">🔄</span>
-              <span>Split Payment</span>
-            </button>
-
-            <button
-              className="payment-type-btn"
-              onClick={() => {
-                setOrderToLinkClient(selectedOrder);
-                setShowClientModal(true);
-              }}
-            >
-              <span className="payment-btn-icon">📋</span>
-              <span>Subscription</span>
-            </button>
-
-          </div>
-
-          {/* Amount Input Section */}
-          <div className="payment-amounts-section">
-            <div className="payment-amounts-grid">
-              {/* Cash Input */}
-              <div className={`payment-input-card ${cashAmount > 0 ? 'active' : 'inactive'}`}>
-                <div className="payment-card-header">
-                  <span className="payment-card-icon">💵</span>
-                  <span className="payment-card-title">Cash Amount</span>
-                </div>
-                <div className="payment-input-wrapper">
-                  <span className="payment-input-currency">DH</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={cashAmount || ''}
-                    onChange={(e) => {
-                      const value = Math.max(0, Number(e.target.value) || 0);
-                      setCashAmount(value);
-                      const total = calculateOrderTotal(selectedOrder.items || []);
-                      const remaining = Math.max(0, total - value);
-                      setCardAmount(remaining);
-                    }}
-                    placeholder="0.00"
-                    className="payment-amount-field"
-                  />
+                <div className="payment-items-grid">
+                  {(selectedOrder.items || []).map((item, i) => {
+                    const itemProps = getItemProperties(item);
+                    return (
+                      <div key={i} className="payment-summary-item">
+                        <span className="payment-item-name">{itemProps.name}</span>
+                        <span className="payment-item-details">
+                          <span className="payment-item-qty">×{itemProps.quantity}</span>
+                          <span className="payment-item-total">{(itemProps.price * itemProps.quantity).toFixed(2)} DH</span>
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Card Input */}
-              <div className={`payment-input-card ${cardAmount > 0 ? 'active' : 'inactive'}`}>
-                <div className="payment-card-header">
-                  <span className="payment-card-icon">💳</span>
-                  <span className="payment-card-title">Card Amount</span>
-                </div>
-                <div className="payment-input-wrapper">
-                  <span className="payment-input-currency">DH</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={cardAmount || ''}
-                    onChange={(e) => {
-                      const value = Math.max(0, Number(e.target.value) || 0);
-                      setCardAmount(value);
+              {/* Payment Methods */}
+              <div className="payment-methods-container">
+                <h4>💳 Select Payment Method</h4>
+
+                <div className="payment-type-buttons">
+                  <button
+                    className={`payment-type-btn ${cashAmount > 0 && cardAmount === 0 ? 'active' : ''}`}
+                    onClick={() => {
                       const total = calculateOrderTotal(selectedOrder.items || []);
-                      const remaining = Math.max(0, total - value);
-                      setCashAmount(remaining);
+                      setCashAmount(total);
+                      setCardAmount(0);
+                      setIsSubscriptionFlow(false);
                     }}
-                    placeholder="0.00"
-                    className="payment-amount-field"
-                  />
+                  >
+                    <span className="payment-btn-icon">💵</span>
+                    <span>Cash Only</span>
+                  </button>
+
+                  <button
+                    className={`payment-type-btn ${cardAmount > 0 && cashAmount === 0 ? 'active' : ''}`}
+                    onClick={() => {
+                      const total = calculateOrderTotal(selectedOrder.items || []);
+                      setCardAmount(total);
+                      setCashAmount(0);
+                      setIsSubscriptionFlow(false);
+                    }}
+                  >
+                    <span className="payment-btn-icon">💳</span>
+                    <span>Card Only</span>
+                  </button>
+
+                  <button
+                    className={`payment-type-btn ${cashAmount > 0 && cardAmount > 0 ? 'active' : ''}`}
+                    onClick={() => {
+                      const total = calculateOrderTotal(selectedOrder.items || []);
+                      setCashAmount(total / 2);
+                      setCardAmount(total / 2);
+                      setIsSubscriptionFlow(false);
+                    }}
+                  >
+                    <span className="payment-btn-icon">🔄</span>
+                    <span>Split Payment</span>
+                  </button>
+
+                  <button
+                    className={`payment-type-btn ${isSubscriptionFlow ? 'active' : ''}`}
+                    onClick={() => {
+                      setOrderToLinkClient(selectedOrder);
+                      setShowClientModal(true);
+                      setIsSubscriptionFlow(true);
+                    }}
+                  >
+                    <span className="payment-btn-icon">📋</span>
+                    <span>Subscription</span>
+                  </button>
                 </div>
+
+                {/* Amount Inputs */}
+                <div className="payment-amounts-section">
+                  <div className="payment-amounts-grid">
+                    <div className={`payment-input-card ${cashAmount > 0 ? 'active' : 'inactive'}`}>
+                      <div className="payment-card-header">
+                        <span className="payment-card-icon">💵</span>
+                        <span className="payment-card-title">Cash Amount</span>
+                      </div>
+                      <div className="payment-input-wrapper">
+                        <span className="payment-input-currency">DH</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={cashAmount || ''}
+                          onChange={(e) => {
+                            const value = Math.max(0, Number(e.target.value) || 0);
+                            setCashAmount(value);
+                            const total = calculateOrderTotal(selectedOrder.items || []);
+                            const remaining = Math.max(0, total - value);
+                            setCardAmount(remaining);
+                            setIsSubscriptionFlow(false);
+                          }}
+                          placeholder="0.00"
+                          className="payment-amount-field"
+                        />
+                      </div>
+                    </div>
+
+                    <div className={`payment-input-card ${cardAmount > 0 ? 'active' : 'inactive'}`}>
+                      <div className="payment-card-header">
+                        <span className="payment-card-icon">💳</span>
+                        <span className="payment-card-title">Card Amount</span>
+                      </div>
+                      <div className="payment-input-wrapper">
+                        <span className="payment-input-currency">DH</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={cardAmount || ''}
+                          onChange={(e) => {
+                            const value = Math.max(0, Number(e.target.value) || 0);
+                            setCardAmount(value);
+                            const total = calculateOrderTotal(selectedOrder.items || []);
+                            const remaining = Math.max(0, total - value);
+                            setCashAmount(remaining);
+                            setIsSubscriptionFlow(false);
+                          }}
+                          placeholder="0.00"
+                          className="payment-amount-field"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
+
+            {/* Footer Actions */}
+            <div className="payment-modal-footer">
+              <button
+                className="payment-cancel-btn"
+                onClick={() => { setShowPaymentModal(false); setIsSubscriptionFlow(false); }}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="payment-clear-btn"
+                onClick={() => {
+                  setCashAmount(0);
+                  setCardAmount(0);
+                  setIsSubscriptionFlow(false);
+                }}
+              >
+                Clear Amounts
+              </button>
+
+              <button
+                className={`payment-complete-btn ${
+                  ((cashAmount + cardAmount) !== calculateOrderTotal(selectedOrder.items || [])) || isSubscriptionFlow
+                    ? 'payment-disabled'
+                    : ''
+                }`}
+                disabled={((cashAmount + cardAmount) !== calculateOrderTotal(selectedOrder.items || [])) || isSubscriptionFlow}
+                onClick={async () => {
+                  const total = calculateOrderTotal(selectedOrder.items || []);
+                  const paid = cashAmount + cardAmount;
+                  if (paid !== total || isSubscriptionFlow) return;
+
+                  try {
+                    const paymentMethods = [];
+                    if (cashAmount > 0) paymentMethods.push({ method: "CASH", amount: cashAmount });
+                    if (cardAmount > 0) paymentMethods.push({ method: "CARD", amount: cardAmount });
+
+                    await fetch("http://localhost:8080/api/payments", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        orderId: selectedOrder.id || selectedOrder.orderId,
+                        payments: paymentMethods,
+                      }),
+                    });
+
+                    const oid = selectedOrder.id || selectedOrder.orderId;
+                    // completes order server-side AND frees the table
+                    await completeOrder(oid);
+
+                    // refresh orders under current filter so UI updates immediately
+                    const refreshed = await fetchOrdersByStatus(filter);
+                    setOrders(refreshed);
+
+                    // notify any table screens to reload
+                    window.dispatchEvent(new CustomEvent("tables:refresh"));
+
+                    setShowPaymentModal(false);
+                    setSelectedOrder(null);
+                    setCashAmount(0);
+                    setCardAmount(0);
+                    setIsSubscriptionFlow(false);
+                    setMessage("Payment completed.");
+                  } catch (err) {
+                    console.error("❌ Payment failed:", err);
+                    setMessage("Payment failed. Please try again.");
+                  }
+                }}
+              >
+                {isSubscriptionFlow
+                  ? "Subscription in progress"
+                  : (cashAmount + cardAmount) === calculateOrderTotal(selectedOrder.items || [])
+                    ? `Complete Payment - ${(cashAmount + cardAmount).toFixed(2)} DH`
+                    : `Enter Correct Amount`
+                }
+              </button>
+            </div>
           </div>
-
-          
         </div>
-      </div>
+      )}
 
-      {/* Footer Actions */}
-      <div className="payment-modal-footer">
-        <button 
-          className="payment-cancel-btn" 
-          onClick={() => setShowPaymentModal(false)}
-        >
-          Cancel
-        </button>
-        
-        <button 
-          className="payment-clear-btn"
-          onClick={() => {
-            setCashAmount(0);
-            setCardAmount(0);
-          }}
-        >
-          Clear Amounts
-        </button>
-        
-        <button
-          className={`payment-complete-btn ${
-            (cashAmount + cardAmount) !== calculateOrderTotal(selectedOrder.items || [])
-              ? 'payment-disabled'
-              : ''
-          }`}
-          disabled={(cashAmount + cardAmount) !== calculateOrderTotal(selectedOrder.items || [])}
-          onClick={async () => {
-            const total = calculateOrderTotal(selectedOrder.items || []);
-            const paid = cashAmount + cardAmount;
+      {showClientModal && orderToLinkClient && (
+        <div className="modal-overlay" onClick={() => { setShowClientModal(false); setIsSubscriptionFlow(false); }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Select Client for Subscription</h3>
+            <ul className="client-list">
+              {clients.map((client) => (
+                <li
+                  key={client.clientId}
+                  className="client-item"
+                  onClick={async () => {
+                    try {
+                      const orderId = orderToLinkClient.id || orderToLinkClient.orderId;
 
-            if (paid !== total) return;
+                      await fetch(`http://localhost:8080/api/orders/${orderId}/assign-client`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ clientId: client.clientId, subscription: true }),
+                      });
 
-            try {
-              const paymentMethods = [];
-              if (cashAmount > 0) paymentMethods.push({ method: "CASH", amount: cashAmount });
-              if (cardAmount > 0) paymentMethods.push({ method: "CARD", amount: cardAmount });
+                      setMessage(`Linked to ${client.firstName} ${client.lastName} (pending payment).`);
 
-              await fetch("http://localhost:8080/api/payments", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  orderId: selectedOrder.id || selectedOrder.orderId,
-                  payments: paymentMethods,
-                }),
-              });
+                      // Refresh list under current filter
+                      const refreshed = await fetchOrdersByStatus(filter);
+                      setOrders(refreshed);
 
-              await handleStatusUpdate(selectedOrder.id || selectedOrder.orderId, "COMPLETED");
+                      setShowClientModal(false);
+                      setOrderToLinkClient(null);
+                      setShowPaymentModal(false);
+                      setIsSubscriptionFlow(false);
+                    } catch (err) {
+                      console.error("❌ Failed to assign client", err);
+                      setMessage("Subscription failed.");
+                    }
+                  }}
+                >
+                  {client.firstName} {client.lastName} (#{client.clientId})
+                </li>
+              ))}
+            </ul>
+            <button onClick={() => { setShowClientModal(false); setIsSubscriptionFlow(false); }}>Cancel</button>
+          </div>
+        </div>
+      )}
 
-              setShowPaymentModal(false);
-              setSelectedOrder(null);
-              setCashAmount(0);
-              setCardAmount(0);
-            } catch (err) {
-              console.error("❌ Payment failed:", err);
-              alert("Payment failed. Please try again.");
-            }
-          }}
-        >
-          {(cashAmount + cardAmount) === calculateOrderTotal(selectedOrder.items || [])
-            ? `Complete Payment - ${(cashAmount + cardAmount).toFixed(2)} DH`
-            : `Enter Correct Amount`
-          }
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-{showClientModal && orderToLinkClient && (
-  <div className="modal-overlay" onClick={() => setShowClientModal(false)}>
-    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-      <h3>Select Client for Subscription</h3>
-      <ul className="client-list">
-        {clients.map((client) => (
-          <li
-            key={client.clientId}
-            className="client-item"
-            onClick={async () => {
-              try {
-                const orderId = orderToLinkClient.id || orderToLinkClient.orderId;
-
-                // Assign client + mark as COMPLETED
-                await fetch(`http://localhost:8080/api/orders/${orderId}/assign-client`, {
-                  method: "PUT",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ clientId: client.clientId }),
-                });
-
-                alert(`Client ${client.firstName} ${client.lastName} assigned via subscription.`);
-
-                // 🔁 Re-fetch orders immediately after success
-                const refreshedOrders = await fetchOrdersByStatus(filter);
-                setOrders(refreshedOrders);
-
-                setShowClientModal(false);
-                setOrderToLinkClient(null);
-                setShowPaymentModal(false);
-              } catch (err) {
-                console.error("❌ Failed to assign client", err);
-                alert("Subscription failed.");
-              }
-            }}
-
-          >
-            {client.firstName} {client.lastName} (#{client.clientId})
-          </li>
-        ))}
-      </ul>
-      <button onClick={() => setShowClientModal(false)}>Cancel</button>
-    </div>
-  </div>
-)}
-
-
+      <Toast message={message} visible={!!message} />
     </div>
   );
 };

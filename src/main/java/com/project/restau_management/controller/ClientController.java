@@ -65,4 +65,6 @@ public class ClientController {
             @RequestParam String lastName) {
         return clientService.findByFullName(firstName, lastName);
     }
+
+
 }

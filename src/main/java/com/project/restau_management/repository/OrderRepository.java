@@ -22,6 +22,9 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
     List<Order> findByTable(Table table);
     List<Order> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 
+    // OrderRepository.java
+    boolean existsByTable_TableIdAndStatusAndOrderIdNot(int tableId, String status, int orderId);
+
     @Query("SELECT o FROM Order o WHERE o.status = :status AND o.createdAt >= :date")
     List<Order> findByStatusAndCreatedAfter(@Param("status") String status, @Param("date") LocalDateTime date);
 

@@ -103,3 +103,12 @@ export const fetchOrderById = async (orderId) => {
   const { data } = await axios.get(`${ORDERS_BASE}/${orderId}`);
   return data; // should include items[]
 };
+
+export async function completeOrder(orderId) {
+  const res = await fetch(`http://localhost:8080/api/orders/${orderId}/complete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw new Error(`Failed to complete order ${orderId}`);
+  return res.json(); // returns the updated order
+}

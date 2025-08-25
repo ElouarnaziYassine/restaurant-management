@@ -4,12 +4,15 @@ import com.project.restau_management.dto.OrderItemDTO;
 import com.project.restau_management.dto.OrderRequestDTO;
 import com.project.restau_management.dto.OrderResponseDTO;
 import com.project.restau_management.entity.*;
+import com.project.restau_management.repository.PaymentMethodRepository;
 import com.project.restau_management.service.*;
+import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -25,18 +28,23 @@ public class OrderController {
     private final ClientService clientService;
     private final TableService tableService;
     private final ProductService productService;
+    private final PaymentMethodRepository paymentMethodRepository;
+    private final PaymentService paymentService;
+
 
 
     public OrderController(OrderService orderService, OrderItemService orderItemService,
                            UserService userService,
                            ClientService clientService,
-                           TableService tableService, ProductService productService) {
+                           TableService tableService, ProductService productService, PaymentMethodRepository paymentMethodRepository, PaymentService paymentService) {
         this.orderService = orderService;
         this.orderItemService = orderItemService;
         this.userService = userService;
         this.clientService = clientService;
         this.tableService = tableService;
         this.productService = productService;
+        this.paymentMethodRepository = paymentMethodRepository;
+        this.paymentService = paymentService;
     }
 
     @PostMapping
@@ -247,14 +255,25 @@ public class OrderController {
     }
 
     @PutMapping("/{orderId}/assign-client")
-    public ResponseEntity<?> assignClientToOrder(@PathVariable int orderId, @RequestBody Map<String, Integer> payload) {
+    public ResponseEntity<?> assignClientToOrder(
+            @PathVariable int orderId,
+            @RequestBody Map<String, Object> payload) {
         try {
-            int clientId = payload.get("clientId");
+            // clientId is required
+            Object clientIdObj = payload.get("clientId");
+            if (clientIdObj == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "clientId is required"));
+            }
+            int clientId = ((Number) clientIdObj).intValue();
+
+            // optional: subscription flag (default true)
+            boolean subscription = true;
+            if (payload.containsKey("subscription") && payload.get("subscription") instanceof Boolean) {
+                subscription = (Boolean) payload.get("subscription");
+            }
 
             Optional<Order> orderOpt = orderService.getOrderById(orderId);
-            if (orderOpt.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
+            if (orderOpt.isEmpty()) return ResponseEntity.notFound().build();
 
             Optional<Client> clientOpt = clientService.getClientById(clientId);
             if (clientOpt.isEmpty()) {
@@ -263,20 +282,29 @@ public class OrderController {
             }
 
             Order order = orderOpt.get();
-            Client client = clientOpt.get();
+            order.setClient(clientOpt.get());
 
-            order.setClient(client);
-            order.setStatus("COMPLETED"); // ✅ Mark as paid via subscription
+            if (subscription) {
+                order.setStatus("PENDING_PAYMENT");
+                // ✅ Immediately free the table for subscription orders
+                orderService.freeTableIfNoOtherOnGoing(order);
+            } else {
+                order.setStatus("COMPLETED");
+                // If you also want to free the table here, you already do it in completeOrder(...)
+                // but since we're not calling completeOrder here, you can also:
+                orderService.freeTableIfNoOtherOnGoing(order);
+            }
 
-            Order updatedOrder = orderService.saveOrder(order);
+            Order updated = orderService.saveOrder(order);
+            return ResponseEntity.ok(OrderResponseDTO.fromEntity(updated));
 
-            return ResponseEntity.ok(OrderResponseDTO.fromEntity(updatedOrder));
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to assign client to order", "details", e.getMessage()));
         }
     }
+
 
     @GetMapping("/client/{clientId}")
     public ResponseEntity<List<Order>> getOrdersByClientAndMonth(
@@ -295,6 +323,129 @@ public class OrderController {
                 .map(o -> ResponseEntity.ok(OrderResponseDTO.fromEntity(o)))
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @PostMapping("/client/{clientId}/settle")
+    @Transactional
+    public ResponseEntity<?> settleClientPeriod(
+            @PathVariable int clientId,
+            @RequestParam String from,   // yyyy-MM-dd
+            @RequestParam String to,     // yyyy-MM-dd
+            @RequestBody Map<String, Object> body
+    ) {
+        try {
+            // 1) Parse window as full days
+            LocalDate start = LocalDate.parse(from);
+            LocalDate end   = LocalDate.parse(to);
+            LocalDateTime fromDt = start.atStartOfDay();
+            LocalDateTime toDt   = end.atTime(23, 59, 59, 999000000);
+
+            // 2) Load all PENDING_PAYMENT orders for client in range
+            List<Order> pendingOrders = orderService
+                    .getOrdersByClientAndDateRange(clientId, from, to) // your existing method
+                    .stream()
+                    .filter(o -> "PENDING_PAYMENT".equalsIgnoreCase(o.getStatus()))
+                    .collect(java.util.stream.Collectors.toList());
+
+            if (pendingOrders.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "No pending orders to settle."));
+            }
+
+            // 3) Sum totals
+            BigDecimal pendingTotal = pendingOrders.stream()
+                    .map(o -> o.getTotalAmount() == null ? BigDecimal.ZERO : o.getTotalAmount())
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            // 4) Parse payments from body
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> payments = (List<Map<String, Object>>) body.get("payments");
+            if (payments == null || payments.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "payments[] is required"));
+            }
+            BigDecimal provided = payments.stream()
+                    .map(p -> new BigDecimal(String.valueOf(p.get("amount"))))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            // 5) Validate equality (allow tiny epsilon)
+            if (pendingTotal.subtract(provided).abs().compareTo(new BigDecimal("0.01")) > 0) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Amounts must equal the pending total",
+                        "pendingTotal", pendingTotal,
+                        "provided", provided
+                ));
+            }
+
+            // 6) Prepare PaymentMethod lookup by name (CASH/CARD)
+            // If you use PaymentMethod entity, inject PaymentMethodRepository
+            java.util.function.Function<String, PaymentMethod> findMethod = (name) ->
+                    paymentMethodRepository.findByNameIgnoreCase(name)
+                            .orElseThrow(() -> new IllegalArgumentException("PaymentMethod not found: " + name));
+
+            // 7) Proportionally allocate each payment across orders and mark orders completed
+            BigDecimal remainingCash = payments.stream()
+                    .filter(p -> "CASH".equalsIgnoreCase(String.valueOf(p.get("method"))))
+                    .map(p -> new BigDecimal(String.valueOf(p.get("amount"))))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal remainingCard = payments.stream()
+                    .filter(p -> "CARD".equalsIgnoreCase(String.valueOf(p.get("method"))))
+                    .map(p -> new BigDecimal(String.valueOf(p.get("amount"))))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            for (Order o : pendingOrders) {
+                BigDecimal orderTotal = o.getTotalAmount() == null ? BigDecimal.ZERO : o.getTotalAmount();
+
+                // prorata share
+                BigDecimal ratio = pendingTotal.signum()==0 ? BigDecimal.ZERO : orderTotal.divide(pendingTotal, 4, java.math.RoundingMode.HALF_UP);
+
+                BigDecimal cashForOrder = remainingCash.multiply(ratio).setScale(2, java.math.RoundingMode.HALF_UP);
+                BigDecimal cardForOrder = remainingCard.multiply(ratio).setScale(2, java.math.RoundingMode.HALF_UP);
+
+                // fix rounding last order
+                boolean isLast = (o == pendingOrders.get(pendingOrders.size()-1));
+                if (isLast) {
+                    // snap leftovers
+                    cashForOrder = cashForOrder.min(remainingCash);
+                    cardForOrder = cardForOrder.min(remainingCard);
+                }
+
+                // create payments (skip zeroes)
+                if (cashForOrder.compareTo(BigDecimal.ZERO) > 0) {
+                    Payment pay = new Payment();
+                    pay.setOrder(o);
+                    pay.setPaymentMethod(findMethod.apply("CASH"));
+                    pay.setAmount(cashForOrder.floatValue());
+                    pay.setStatus("COMPLETED");
+                    paymentService.savePayment(pay);
+                    remainingCash = remainingCash.subtract(cashForOrder);
+                }
+                if (cardForOrder.compareTo(BigDecimal.ZERO) > 0) {
+                    Payment pay = new Payment();
+                    pay.setOrder(o);
+                    pay.setPaymentMethod(findMethod.apply("CARD"));
+                    pay.setAmount(cardForOrder.floatValue());
+                    pay.setStatus("COMPLETED");
+                    paymentService.savePayment(pay);
+                    remainingCard = remainingCard.subtract(cardForOrder);
+                }
+
+                // mark order completed
+                // ✅ frees the linked table as part of completion
+                orderService.completeOrder(o.getOrderId());
+
+            }
+
+            // 8) Return updated orders (so UI can immediately reflect)
+            List<Order> updated = orderService.getOrdersByClientAndDateRange(clientId, from, to);
+            return ResponseEntity.ok(Map.of(
+                    "ordersSettled", pendingOrders.size(),
+                    "totalPaid", provided,
+                    "orders", updated
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Settlement failed", "details", e.getMessage()));
+        }
+    }
+
 
 
 

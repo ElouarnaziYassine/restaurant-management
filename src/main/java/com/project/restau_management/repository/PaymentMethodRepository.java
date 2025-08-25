@@ -12,4 +12,6 @@ public interface PaymentMethodRepository extends JpaRepository<PaymentMethod, In
     Optional<PaymentMethod> findByType(String type);
     List<PaymentMethod> findByTypeContainingIgnoreCase(String type);
     List<PaymentMethod> findByNameContainingIgnoreCase(String name);
+    Optional<PaymentMethod> findByNameIgnoreCase(String name);
+
 }

@@ -8,6 +8,7 @@ import com.project.restau_management.entity.User;
 import com.project.restau_management.repository.OrderItemRepository;
 import com.project.restau_management.repository.OrderRepository;
 import jakarta.persistence.Table;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -150,6 +151,31 @@ public class OrderService {
                 clientId, LocalDateTime.parse(from + "T00:00:00"), LocalDateTime.parse(to + "T23:59:59"));
     }
 
+    public List<Order> getOrdersByClientAndDateRangeWithStatus(int clientId, String from, String to, String status) {
+        // Implement using your repository. Example:
+        // return orderRepository.findByClientIdAndCreatedAtBetweenAndStatus(
+        //     clientId, LocalDate.parse(from).atStartOfDay(), LocalDate.parse(to).atTime(23,59,59), status
+        // );
+        throw new UnsupportedOperationException("Implement in service/repo");
+    }
+
+    @Transactional
+    public void freeTableIfNoOtherOnGoing(Order order) {
+        if (order == null || order.getTable() == null) return;
+
+        int tableId = order.getTable().getTableId();
+
+        // If you never allow multiple orders per table, you can skip this "others" check
+        boolean others = orderRepository.existsByTable_TableIdAndStatusAndOrderIdNot(
+                tableId, "ON GOING", order.getOrderId());
+
+        if (!others) {
+            tableService.setTableAvailability(tableId, true); // mark table FREE
+        }
+
+        // Optional but recommended: unlink to avoid future accidental locks
+        order.setTable(null);
+    }
 
 
 }
