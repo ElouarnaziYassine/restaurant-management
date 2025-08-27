@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   fetchCategories,
-  createCategory,
 } from "../api/categoryApi";
 import {
   fetchProductFamilies,
@@ -32,8 +31,7 @@ const CreateProductFamily = () => {
     loadProductFamilies();
   }, []);
 
-  /*toast */
-    useEffect(() => {
+  useEffect(() => {
     if (message) {
       const timer = setTimeout(() => setMessage(""), 3000);
       return () => clearTimeout(timer);
@@ -85,13 +83,11 @@ const CreateProductFamily = () => {
       if (imageFile) formData.append("image", imageFile);
 
       if (editId) {
-        // PUT for update
         await axios.put(`http://localhost:8080/api/product-families/${editId}`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         setMessage("Product family updated successfully!");
       } else {
-        // POST for create
         await createProductFamily(formData);
         setMessage("Product family created successfully!");
       }
@@ -145,60 +141,126 @@ const CreateProductFamily = () => {
   };
 
   return (
-    <div className="create-product-family-page">
-      <h2>{editId ? "Edit Product Family" : "Create New Product Family"}</h2>
+    <div className="product-family-container">
+      <Toast message={message} visible={!!message} />
 
-      <form onSubmit={handleSubmit} className="create-family-form">
-        <div className="form-group">
-          <label>Name</label>
-          <input type="text" name="name" value={family.name} onChange={handleChange} required />
+      {/* Header */}
+      <div className="page-header">
+        <div className="header-content">
+          <h1 className="page-title">Product Families</h1>
+          <p className="page-subtitle">Group products under categories</p>
+        </div>
+        <div className="family-stats">{productFamilies.length} families</div>
+      </div>
+
+      <div className="family-layout">
+        {/* Form Section */}
+        <div className="form-section">
+          <div className="form-card">
+            <div className="form-header">
+              <div className="form-icon">📦</div>
+              <h2 className="form-title">{editId ? "Edit Product Family" : "Add Product Family"}</h2>
+            </div>
+
+            <form onSubmit={handleSubmit} className="family-form">
+              <div className="input-group">
+                <label className="input-label">Family Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={family.name}
+                  onChange={handleChange}
+                  placeholder="Enter product family name"
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">Description</label>
+                <textarea
+                  name="description"
+                  value={family.description}
+                  onChange={handleChange}
+                  placeholder="Brief description"
+                  className="form-textarea"
+                  rows="3"
+                  required
+                />
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">Category</label>
+                <select
+                  name="categoryId"
+                  value={family.categoryId}
+                  onChange={handleChange}
+                  className="form-select"
+                  required
+                >
+                  <option value="">Select a category</option>
+                  {categories.map((cat) => (
+                    <option key={cat.categoryId} value={cat.categoryId}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-actions">
+                <button type="submit" className="primary-btn">
+                  {editId ? "Update Family" : "Create Family"}
+                </button>
+                {editId && (
+                  <button type="button" onClick={resetForm} className="secondary-btn">
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
         </div>
 
-        <div className="form-group">
-          <label>Description</label>
-          <textarea name="description" value={family.description} onChange={handleChange} required />
-        </div>
+        {/* Families List */}
+        <div className="families-section">
+          <div className="section-header">
+            <h3 className="section-title">Existing Families ({productFamilies.length})</h3>
+          </div>
 
-        <div className="form-group">
-          <label>Category</label>
-          <select name="categoryId" value={family.categoryId} onChange={handleChange} required>
-            <option value="">Select a category</option>
-            {categories.map((cat) => (
-              <option key={cat.categoryId} value={cat.categoryId}>
-                {cat.name}
-              </option>
+          <div className="families-list">
+            {productFamilies.map((fam) => (
+              <div key={fam.productFamilyId} className="family-item">
+                <div className="family-content">
+                  <div className="family-main">
+                    {fam.imageUrl ? (
+                      <img src={fam.imageUrl} alt={fam.name} className="family-thumbnail" />
+                    ) : (
+                      <div className="family-placeholder">📦</div>
+                    )}
+                    <div className="family-info">
+                      <h4 className="family-title">{fam.name}</h4>
+                      <p className="family-desc">{fam.description}</p>
+                      <span className="family-category">{fam.category?.name || "Uncategorized"}</span>
+                    </div>
+                  </div>
+                  <div className="family-actions">
+                    <button onClick={() => handleEdit(fam)} className="action-btn edit-btn">✏️</button>
+                    <button onClick={() => handleDelete(fam.productFamilyId)} className="action-btn delete-btn">🗑️</button>
+                  </div>
+                </div>
+              </div>
             ))}
-          </select>
+          </div>
+
+          {productFamilies.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-icon">📦</div>
+              <h3>No product families yet</h3>
+              <p>Create your first family to group related products</p>
+            </div>
+          )}
         </div>
-
-        <button type="submit">{editId ? "Update" : "Create"}</button>
-        <Toast message={message} visible={!!message} />
-      </form>
-
-      <h3>Existing Product Families</h3>
-      <table className="category-table">
-        <thead>
-          <tr>
-            <th>Product Family</th>
-            <th>Description</th>
-            <th>Category</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {productFamilies.map((fam) => (
-            <tr key={fam.productFamilyId}>
-              <td>{fam.name}</td>
-              <td>{fam.description}</td>
-              <td>{fam.category?.name || "N/A"}</td>
-              <td>
-                <button onClick={() => handleEdit(fam)}>Edit</button>
-                <button onClick={() => handleDelete(fam.productFamilyId)}>Delete</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      </div>
     </div>
   );
 };
